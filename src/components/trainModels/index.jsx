@@ -13,14 +13,18 @@ import {
   Typography,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
 const TrainModels = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [trainedFaces, setTrainedFaces] = useState([]);
   const [faceName, setFaceName] = useState("");
   const [videoSize, setVideoSize] = useState({ width: 680, height: 480 });
+  const [restart, setRestart] = useState(false);
+  const [isBackCamera, setIsBackCamera] = useState(false);
+
   const storedFaces = JSON.parse(localStorage.getItem("trainedFaces")) || [];
-  const [isVideoReady, setIsVideoReady] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,12 +40,13 @@ const TrainModels = () => {
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: {
+            facingMode: isBackCamera ? { exact: "environment" } : "user",
+          },
         });
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play();
-          setIsVideoReady(true);
+          captureSingleFaceData();
         };
       } catch (err) {
         console.error("Error accessing webcam:", err);
@@ -49,13 +54,7 @@ const TrainModels = () => {
     };
 
     initializeModelsAndVideo();
-  }, []);
-
-  useEffect(() => {
-    if (isVideoReady) {
-      captureSingleFaceData();
-    }
-  }, [isVideoReady]);
+  }, [restart, isBackCamera]);
 
   const captureSingleFaceData = async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -67,13 +66,13 @@ const TrainModels = () => {
       .withFaceDescriptors()
       .withFaceExpressions()
       .withAgeAndGender();
-    clearCanvas();
+
     if (faces.length > 0) {
       const face = faces[0];
       const descriptor = face.descriptor;
       const faceBox = face.detection.box;
       const imageDataUrl = await captureFaceImage(faceBox);
-      drawFaceBoxAndLabel(face, "Detected");
+      drawFaceDetection([face]);
       const faceData = {
         name: faceName,
         descriptor,
@@ -83,7 +82,7 @@ const TrainModels = () => {
       saveToLocalStorage(faceData);
       setTrainedFaces((prevTrainedFaces) => [...prevTrainedFaces, faceData]);
     } else {
-      faces.forEach((face) => drawFaceBoxAndLabel(face, "Detected"));
+      drawFaceDetection(faces);
     }
   };
 
@@ -139,56 +138,60 @@ const TrainModels = () => {
     });
   };
 
-  const drawFaceBoxAndLabel = (face, label) => {
-    const { x, y, width, height } = face.detection.box;
-    createSvgRect(x, y, width, height, "#ff4c4c", "#ff4c4c20");
-    createSvgText(x + 10, y - 5, label, "#fff", "#ff4c4c");
+  const drawFaceDetection = (faces) => {
+    const container = canvasRef.current;
+    container.innerHTML = "";
+
+    faces.forEach((face) => {
+      const { x, y, width, height } = face.detection.box;
+      createDiv(
+        container,
+        x,
+        y,
+        width,
+        height,
+        "Detected",
+        "#fff",
+        "#ff4c4c20",
+        "#ff4c4c"
+      );
+    });
   };
 
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    while (canvas.firstChild) {
-      canvas.removeChild(canvas.firstChild);
-    }
-  };
+  const createDiv = (
+    container,
+    x,
+    y,
+    width,
+    height,
+    label,
+    textColor,
+    backgroundColor,
+    borderColor
+  ) => {
+    const div = document.createElement("div");
+    div.style.position = "absolute";
+    div.style.left = `${x}px`;
+    div.style.top = `${y}px`;
+    div.style.width = `${width}px`;
+    div.style.height = `${height}px`;
+    div.style.border = `2px solid ${borderColor}`;
+    div.style.backgroundColor = backgroundColor;
+    div.style.color = textColor;
+    div.style.display = "flex";
+    div.style.alignItems = "start";
+    div.style.justifyContent = "start";
+    div.style.fontSize = "14px";
+    div.style.fontWeight = "bold";
 
-  const createSvgRect = (x, y, width, height, strokeColor, fillColor) => {
-    const canvas = canvasRef.current;
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("x", x.toString());
-    rect.setAttribute("y", y.toString());
-    rect.setAttribute("width", width.toString());
-    rect.setAttribute("height", height.toString());
-    rect.setAttribute("stroke", strokeColor);
-    rect.setAttribute("fill", fillColor);
-    rect.setAttribute("stroke-width", "2");
-    canvas.appendChild(rect);
-  };
+    const p = document.createElement("p");
+    p.textContent = label;
+    p.style.margin = "0";
+    p.style.padding = "5px";
+    p.style.backgroundColor = borderColor;
 
-  const createSvgText = (x, y, textContent, textColor, backgroundColor) => {
-    const svg = canvasRef.current;
-
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("x", x.toString());
-    text.setAttribute("y", (y - 5).toString());
-    text.setAttribute("font-size", "14px");
-    text.setAttribute("font-weight", "bold");
-    text.setAttribute("fill", textColor);
-    text.textContent = textContent;
-    svg.appendChild(text);
-
-    const textWidth = text.getBBox().width;
-
-    const backgroundRect = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "rect"
-    );
-    backgroundRect.setAttribute("x", (x - 5).toString());
-    backgroundRect.setAttribute("y", (y - 20).toString());
-    backgroundRect.setAttribute("width", (textWidth + 10).toString());
-    backgroundRect.setAttribute("height", "20");
-    backgroundRect.setAttribute("fill", backgroundColor);
-    svg.insertBefore(backgroundRect, text);
+    div.appendChild(p);
+    container.appendChild(div);
   };
 
   const runTraining = async () => {
@@ -227,16 +230,39 @@ const TrainModels = () => {
         position: "relative",
       }}
     >
-      <Tooltip arrow title={"Go Back"}>
-        <IconButton
-          onClick={redirectPage}
-          sx={{
-            border: "1px solid #58a6ff",
-          }}
-        >
-          <ArrowBackIcon sx={{ color: "#fff" }} />
-        </IconButton>
-      </Tooltip>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Tooltip arrow title={"Go Back"}>
+          <IconButton
+            onClick={redirectPage}
+            sx={{
+              border: "1px solid #58a6ff",
+            }}
+          >
+            <ArrowBackIcon sx={{ color: "#fff" }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip arrow title={"Restart the camera, if not open"}>
+          <IconButton
+            onClick={() => setRestart((prev) => !prev)}
+            sx={{
+              border: "1px solid #58a6ff",
+            }}
+          >
+            <RestartAltIcon sx={{ color: "#fff" }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip arrow title={"Switch Camera"}>
+          <IconButton
+            onClick={() => setIsBackCamera((prev) => !prev)}
+            sx={{
+              border: "1px solid #58a6ff",
+              display: { xs: "flex", md: "none" },
+            }}
+          >
+            <CameraswitchIcon sx={{ color: "#fff" }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
       <Typography variant="h4" sx={{ color: "#58a6ff", textAlign: "center" }}>
         Face Training
       </Typography>
@@ -292,7 +318,14 @@ const TrainModels = () => {
           </Button>
         )}
       </Box>
-      <Box sx={{ position: "relative", marginTop: 2, width: videoSize.width }}>
+      <Box
+        sx={{
+          position: "relative",
+          marginTop: 2,
+          width: videoSize.width,
+          height: videoSize.height,
+        }}
+      >
         <video
           ref={videoRef}
           autoPlay
@@ -310,11 +343,16 @@ const TrainModels = () => {
           }}
         ></video>
         <Box
-          component="svg"
           ref={canvasRef}
-          sx={{ position: "absolute", left: 0, top: 0 }}
-          width={videoSize.width}
-          height={videoSize.height}
+          sx={{
+            borderRadius: "8px",
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: videoSize.width,
+            height: videoSize.height,
+          }}
         ></Box>
       </Box>
     </Box>

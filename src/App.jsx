@@ -16,6 +16,7 @@ import {
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
+
 const FaceDetection = () => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
@@ -24,7 +25,7 @@ const FaceDetection = () => {
   const faceRef = useRef(null);
   const storedFaces = JSON.parse(localStorage.getItem("trainedFaces")) || [];
   const [objectCounts, setObjectCounts] = useState({});
-  const [videoSize, setVideoSize] = useState({ width: 680, height: 480 });
+  const [videoSize, setVideoSize] = useState({ width: null, height: null });
   const [clearFaces, setClearFaces] = useState([]);
   const [restart, setRestart] = useState(false);
   const [isBackCamera, setIsBackCamera] = useState(false);
@@ -57,7 +58,6 @@ const FaceDetection = () => {
         video: { facingMode: isBackCamera ? { exact: "environment" } : "user" },
       });
       videoRef.current.srcObject = stream;
-      console.log(videoRef);
       videoRef.current.onloadedmetadata = () => {
         detectFaces();
         initObjectDetection();
@@ -231,6 +231,20 @@ const FaceDetection = () => {
       console.log(`Face with ID ${idToRemove} not found.`);
     }
   };
+  useEffect(() => {
+    function updateSize() {
+      const height = videoRef.current?.clientHeight;
+      const width = videoRef.current?.clientWidth;
+      if (height && width) {
+        setVideoSize({ height: height, width: width });
+        console.log(height, width);
+        console.log(videoRef.current, videoRef.current);
+      }
+    }
+    window.addEventListener("resize", updateSize);
+    updateSize();
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
 
   return (
     <Box
@@ -292,63 +306,62 @@ const FaceDetection = () => {
       </Typography>
       <Grid
         container
-        alignItems={"center"}
-        sx={{ height: "100%", width: "100%" }}
+        sx={{
+          height: "100%",
+          width: "100%",
+        }}
       >
-        <Grid
-          item
-          xs={12}
-          lg={6}
-          ref={containerRef}
-          sx={{
-            position: "relative",
-            width: "100%",
-            height: "100%",
-          }}
-        >
+        <Grid item xs={12} lg={6} ref={containerRef}>
           <Box
-            component="video"
-            ref={videoRef}
-            autoPlay
-            playsInline
-            id="video"
             sx={{
-              border: "1px dashed #58a6ff",
-              borderRadius: "8px",
-              objectFit: "contain",
-              width: videoSize.width,
-              height: videoSize.height,
               position: "relative",
-              background: "#fff",
-            }}
-            onLoad={() => {
-              const videoWidth = containerRef.current.clientWidth;
-              const videoHeight = containerRef.current.clientHeight;
-              setVideoSize({ width: videoWidth, height: videoHeight });
-            }}
-          ></Box>
-          <Box
-            ref={objectSvgRef}
-            sx={{
-              borderRadius: "8px",
-              position: "absolute",
-              left: 0,
-              top: 0,
+              background: "#000000",
               width: videoSize.width,
               height: videoSize.height,
+              mx: "auto",
             }}
-          ></Box>
-          <Box
-            ref={faceRef}
-            sx={{
-              borderRadius: "8px",
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: videoSize.width,
-              height: videoSize.height,
-            }}
-          ></Box>
+          >
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              id="video"
+              onLoadedMetadata={() => {
+                const videoWidth = videoRef.current.clientWidth;
+                const videoHeight = videoRef.current.clientHeight;
+                setVideoSize({ width: videoWidth, height: videoHeight });
+              }}
+              style={{
+                border: "1px dashed #58a6ff",
+                borderRadius: "8px",
+                objectFit: "contain",
+              }}
+            ></video>
+            <Box
+              ref={objectSvgRef}
+              sx={{
+                borderRadius: "8px",
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: videoSize.width,
+                height: videoSize.height,
+              }}
+            ></Box>
+            <Box
+              ref={faceRef}
+              sx={{
+                borderRadius: "8px",
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: videoSize.width,
+                height: videoSize.height,
+              }}
+            ></Box>
+          </Box>
         </Grid>
         <Grid
           item
