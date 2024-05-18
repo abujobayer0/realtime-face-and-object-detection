@@ -4,8 +4,18 @@ import * as faceapi from "face-api.js";
 import ml5 from "ml5";
 import "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-wasm";
-// import ImageDetection from "./components/imgDetection";
-
+import {
+  Box,
+  Button,
+  Typography,
+  Grid,
+  Paper,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
 const FaceDetection = () => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
@@ -16,16 +26,11 @@ const FaceDetection = () => {
   const [objectCounts, setObjectCounts] = useState({});
   const [videoSize, setVideoSize] = useState({ width: 680, height: 480 });
   const [clearFaces, setClearFaces] = useState([]);
+  const [restart, setRestart] = useState(false);
+  const [isBackCamera, setIsBackCamera] = useState(false);
+
   let objectDetector;
-  // const imageLinks = [
-  //   "http://195.32.24.180:1024/mjpg/video.mjpg",
-  //   "http://193.214.75.118/mjpg/video.mjpg",
-  //   "http://185.133.99.214:8010/mjpg/video.mjpg",
-  //   "http://100.42.92.26/mjpg/video.mjpg",
-  //   "http://77.222.181.11:8080/mjpg/video.mjpg",
-  //   "http://80.14.201.251:8010/mjpg/video.mjpg",
-  //   "",
-  // ];
+
   useEffect(() => {
     const runDetection = async () => {
       await loadModels();
@@ -33,7 +38,7 @@ const FaceDetection = () => {
     };
 
     runDetection();
-  }, []);
+  }, [restart, isBackCamera]);
 
   const loadModels = async () => {
     await faceapi.tf.setBackend("webgl");
@@ -48,7 +53,9 @@ const FaceDetection = () => {
 
   const startVideo = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: isBackCamera ? { exact: "environment" } : "user" },
+      });
       videoRef.current.srcObject = stream;
       console.log(videoRef);
       videoRef.current.onloadedmetadata = () => {
@@ -226,8 +233,8 @@ const FaceDetection = () => {
   };
 
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         textAlign: "center",
         display: "flex",
         flexDirection: "column",
@@ -239,28 +246,42 @@ const FaceDetection = () => {
         position: "relative",
       }}
     >
-      <button
-        onClick={redirectPage}
-        style={{
-          width: 200,
-          height: 40,
-          position: "absolute",
-          top: 40,
-          right: 20,
-          border: "1px dashed #58a6ff",
-          color: "#58a6ff",
-          background: "transparent",
-          fontSize: 15,
-          fontWeight: "bold",
-          borderRadius: "8px",
-          zIndex: 10,
-          cursor: "pointer",
-        }}
-      >
-        Train Faces
-      </button>
-      <h1
-        style={{
+      <Box sx={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Tooltip arrow title={"Train Face"}>
+          <IconButton
+            onClick={redirectPage}
+            sx={{
+              border: "1px solid #58a6ff",
+            }}
+          >
+            <ArrowRightAltIcon sx={{ color: "#fff" }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip arrow title={"Restart the camera, if not open"}>
+          <IconButton
+            onClick={() => setRestart((prev) => !prev)}
+            sx={{
+              border: "1px solid #58a6ff",
+            }}
+          >
+            <RestartAltIcon sx={{ color: "#fff" }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip arrow title={"Switch Camera"}>
+          <IconButton
+            onClick={() => setIsBackCamera((prev) => !prev)}
+            sx={{
+              border: "1px solid #58a6ff",
+              display: { xs: "flex", md: "none" },
+            }}
+          >
+            <CameraswitchIcon sx={{ color: "#fff" }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+      <Typography
+        variant="h4"
+        sx={{
           padding: "25px",
           width: "100%",
           marginTop: 0,
@@ -268,74 +289,91 @@ const FaceDetection = () => {
         }}
       >
         Face Detection & Object Detection
-      </h1>
-      <div className="responsive-container">
-        <div ref={containerRef} style={{ position: "relative" }}>
-          <video
+      </Typography>
+      <Grid
+        container
+        alignItems={"center"}
+        sx={{ height: "100%", width: "100%" }}
+      >
+        <Grid
+          item
+          xs={12}
+          lg={6}
+          ref={containerRef}
+          sx={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <Box
+            component="video"
             ref={videoRef}
             autoPlay
             playsInline
             id="video"
-            style={{
+            sx={{
               border: "1px dashed #58a6ff",
               borderRadius: "8px",
               objectFit: "contain",
+              width: videoSize.width,
+              height: videoSize.height,
+              position: "relative",
+              background: "#fff",
             }}
-            onLoadedMetadata={() => {
-              const videoWidth = videoRef.current.clientWidth;
-              const videoHeight = videoRef.current.clientHeight;
+            onLoad={() => {
+              const videoWidth = containerRef.current.clientWidth;
+              const videoHeight = containerRef.current.clientHeight;
               setVideoSize({ width: videoWidth, height: videoHeight });
             }}
-          ></video>
-          <div
+          ></Box>
+          <Box
             ref={objectSvgRef}
-            style={{
+            sx={{
               borderRadius: "8px",
               position: "absolute",
               left: 0,
               top: 0,
+              width: videoSize.width,
+              height: videoSize.height,
             }}
-            width={videoSize.width}
-            height={videoSize.height}
-          ></div>
-          <div
-            style={{
-              borderRadius: "8px",
-              position: "absolute",
-              left: 0,
-              top: 0,
-            }}
+          ></Box>
+          <Box
             ref={faceRef}
-            width={videoSize.width}
-            height={videoSize.height}
-          ></div>
-        </div>
-        <div
-          style={{
+            sx={{
+              borderRadius: "8px",
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: videoSize.width,
+              height: videoSize.height,
+            }}
+          ></Box>
+        </Grid>
+        <Grid
+          item
+          xs={12}
+          lg={6}
+          sx={{
             border: "1px dashed #58a6ff",
             width: "100%",
             padding: "10px",
             borderRadius: "8px",
             justifyContent: "center",
-            minHeight: 458,
+            minHeight: 500,
             backgroundColor: "#0d1117",
+            marginTop: "10px",
+            height: "100%",
           }}
         >
-          <h1 style={{ padding: "10px", color: "#58a6ff" }}>
+          <Typography variant="h4" sx={{ padding: "10px", color: "#58a6ff" }}>
             Object Detection Results
-          </h1>
-          <div style={{ display: "flex", flexWrap: "wrap" }}>
+          </Typography>
+          <Grid container spacing={1}>
             {Object.entries(objectCounts).map(([label, count], index) => (
-              <div
-                key={index}
-                style={{
-                  marginRight: "20px",
-                  marginBottom: "20px",
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  style={{
+              <Grid item key={index} xs={12} sm={6} md={4} lg={3}>
+                <Box
+                  sx={{
                     padding: "10px",
                     border: "1px dashed #58a6ff",
                     display: "flex",
@@ -343,25 +381,19 @@ const FaceDetection = () => {
                     alignItems: "center",
                     borderRadius: "8px",
                     backgroundColor: "#21262d",
+                    textAlign: "center",
                   }}
                 >
-                  <p
-                    style={{ fontSize: "16px" }}
-                  >{`Detected ${label}: ${count}`}</p>
-                </div>
-              </div>
+                  <Typography sx={{ fontSize: "16px", color: "#fff" }}>
+                    {`Detected ${label}: ${count}`}
+                  </Typography>
+                </Box>
+              </Grid>
             ))}
             {clearFaces.map((face, index) => (
-              <div
-                key={index}
-                style={{
-                  marginRight: "20px",
-                  marginBottom: "20px",
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  style={{
+              <Grid item key={index} xs={12} sm={6} md={4}>
+                <Box
+                  sx={{
                     padding: "10px",
                     border: "1px dashed #58a6ff",
                     display: "flex",
@@ -369,25 +401,20 @@ const FaceDetection = () => {
                     alignItems: "center",
                     borderRadius: "8px",
                     backgroundColor: "#21262d",
+                    textAlign: "center",
                   }}
                 >
-                  <p
-                    style={{ fontSize: "16px" }}
-                  >{`name: ${"unknown"} || age: ${parseInt(
-                    face.age
-                  )} || gender: ${face.gender}`}</p>
-                </div>
-              </div>
+                  <Typography sx={{ fontSize: "16px", color: "#fff" }}>
+                    {`name: ${"unknown"} || age: ${parseInt(
+                      face.age
+                    )} || gender: ${face.gender}`}
+                  </Typography>
+                </Box>
+              </Grid>
             ))}
-            <div
-              style={{
-                marginRight: "20px",
-                marginBottom: "20px",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
+            <Grid item xs={12} sm={6} md={4}>
+              <Box
+                sx={{
                   padding: "10px",
                   border: "1px dashed #58a6ff",
                   display: "flex",
@@ -395,21 +422,20 @@ const FaceDetection = () => {
                   alignItems: "center",
                   borderRadius: "8px",
                   backgroundColor: "#21262d",
+                  textAlign: "center",
                 }}
               >
-                <p
-                  style={{ fontSize: "16px" }}
-                >{`Detected Face: ${clearFaces.length}`}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <section
-        style={{ display: "flex", width: "100%", gap: 10, minHeight: 480 }}
-      >
-        <div
-          style={{
+                <Typography sx={{ fontSize: "16px", color: "#fff" }}>
+                  {`Detected Face: ${clearFaces.length}`}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Grid>
+      <Box sx={{ display: "flex", width: "100%", gap: 2, minHeight: 480 }}>
+        <Paper
+          sx={{
             border: "1px dashed #58a6ff",
             width: "100%",
             padding: "10px",
@@ -419,16 +445,16 @@ const FaceDetection = () => {
             backgroundColor: "#0d1117",
           }}
         >
-          <h1 style={{ padding: "10px", color: "#58a6ff" }}>
+          <Typography variant="h4" sx={{ padding: "10px", color: "#58a6ff" }}>
             Trained Model Preview Zone
-          </h1>
-          <div
-            style={{ display: "flex", flexWrap: "wrap", background: "#0d1117" }}
+          </Typography>
+          <Box
+            sx={{ display: "flex", flexWrap: "wrap", background: "#0d1117" }}
           >
             {storedFaces.map((trainedFace, index) => (
-              <div
+              <Box
                 key={index}
-                style={{
+                sx={{
                   marginRight: "20px",
                   marginBottom: "20px",
                   textAlign: "center",
@@ -440,8 +466,8 @@ const FaceDetection = () => {
                   borderBottomLeftRadius: "8px",
                 }}
               >
-                <div
-                  style={{
+                <Box
+                  sx={{
                     padding: "10px",
                     display: "flex",
                     justifyContent: "center",
@@ -459,12 +485,12 @@ const FaceDetection = () => {
                       objectFit: "cover",
                     }}
                   />
-                </div>
-                <p style={{ fontSize: "16px", color: "#c9d1d9" }}>
+                </Box>
+                <Typography sx={{ fontSize: "16px", color: "#c9d1d9" }}>
                   {trainedFace.name}
-                </p>
-                <button
-                  style={{
+                </Typography>
+                <Button
+                  sx={{
                     background: "#ff4c4c",
                     color: "#fff",
                     padding: "10px 5px",
@@ -477,17 +503,15 @@ const FaceDetection = () => {
                   onClick={() => removeFaceFromLocalStorageById(trainedFace.id)}
                 >
                   Delete
-                </button>
-              </div>
+                </Button>
+              </Box>
             ))}
-          </div>
-        </div>
-      </section>
-      <section
-        style={{ display: "flex", width: "100%", gap: 10, minHeight: 480 }}
-      >
-        <div
-          style={{
+          </Box>
+        </Paper>
+      </Box>
+      <Box sx={{ display: "flex", width: "100%", gap: 2, minHeight: 480 }}>
+        <Paper
+          sx={{
             border: "1px dashed #58a6ff",
             width: "100%",
             padding: "10px",
@@ -497,26 +521,20 @@ const FaceDetection = () => {
             backgroundColor: "#0d1117",
           }}
         >
-          <h1 style={{ padding: "10px", color: "#58a6ff" }}>
+          <Typography variant="h4" sx={{ padding: "10px", color: "#58a6ff" }}>
             Live Footages and Realtime Detection
-          </h1>
-          <div
-            style={{
+          </Typography>
+          <Box
+            sx={{
               display: "grid",
               width: "100%",
               gridTemplateColumns: "repeat(2, 1fr)",
               gap: "20px",
             }}
-          >
-            {/* {imageLinks.map((img, indx) => (
-              <div key={indx}>
-                <ImageDetection imgURL={img} />
-              </div>
-            ))} */}
-          </div>
-        </div>
-      </section>
-    </div>
+          ></Box>
+        </Paper>
+      </Box>
+    </Box>
   );
 };
 

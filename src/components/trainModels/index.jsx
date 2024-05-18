@@ -4,7 +4,15 @@ import "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-wasm";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
+import {
+  Box,
+  Button,
+  IconButton,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 const TrainModels = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -14,10 +22,7 @@ const TrainModels = () => {
   const storedFaces = JSON.parse(localStorage.getItem("trainedFaces")) || [];
   const [isVideoReady, setIsVideoReady] = useState(false);
   const navigate = useNavigate();
-  //live spy cctv links
-  // http://142.0.109.159/axis-cgi/mjpg/video.cgi
-  // http://83.48.75.113:8320/axis-cgi/mjpg/video.cgi
-  // https://github.com/fury999io/public-ip-cams?tab=readme-ov-file
+
   useEffect(() => {
     const initializeModelsAndVideo = async () => {
       await faceapi.tf.setBackend("webgl");
@@ -212,90 +217,82 @@ const TrainModels = () => {
   };
 
   return (
-    <div
-      style={{
-        marginTop: 10,
+    <Box
+      sx={{
+        marginTop: 2,
         width: "100%",
-        borderRadius: "8px",
+        borderRadius: 2,
         border: "1px dashed",
-        padding: 10,
+        padding: 2,
+        position: "relative",
       }}
     >
-      <button
-        onClick={redirectPage}
-        style={{
-          width: 200,
-          height: 40,
-          position: "absolute",
-          top: 40,
-          left: 20,
-          border: "1px dashed #58a6ff",
-          color: "#58a6ff",
-          background: "transparent",
-          fontSize: 15,
-          fontWeight: "bold",
-          borderRadius: "8px",
-          zIndex: 10,
-          cursor: "pointer",
-        }}
+      <Tooltip arrow title={"Go Back"}>
+        <IconButton
+          onClick={redirectPage}
+          sx={{
+            border: "1px solid #58a6ff",
+          }}
+        >
+          <ArrowBackIcon sx={{ color: "#fff" }} />
+        </IconButton>
+      </Tooltip>
+      <Typography variant="h4" sx={{ color: "#58a6ff", textAlign: "center" }}>
+        Face Training
+      </Typography>
+      <Box
+        sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
       >
-        Go Back
-      </button>
-      <h1 style={{ color: "#58a6ff", textAlign: "center" }}>Face Training</h1>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <input
+        <TextField
           type="text"
           id="faceName"
-          style={{
-            width: 200,
-            padding: 10,
-            border: "1px dashed",
-            borderRadius: "8px",
-          }}
+          variant="outlined"
           placeholder="Enter Face Name"
           value={faceName}
           onChange={(e) => setFaceName(e.target.value)}
+          sx={{
+            width: 200,
+            padding: 1,
+            border: "1px dashed #58a6ff",
+            borderRadius: 1,
+            marginBottom: 2,
+            background: "#fff",
+          }}
         />
         {trainedFaces.length < 5 ? (
-          <button
-            style={{
-              marginTop: "20px",
-              padding: "10px 20px",
-              fontSize: "16px",
-              cursor: "pointer",
-              border: "1px dashed",
-              borderRadius: "8px",
-            }}
+          <Button
+            variant="outlined"
             onClick={runTraining}
-          >
-            {"Start Training"}
-          </button>
-        ) : (
-          <button
-            style={{
-              marginTop: "20px",
-              padding: "10px 20px",
-              fontSize: "16px",
+            sx={{
+              marginTop: 2,
+              padding: 1,
+              fontSize: 16,
               cursor: "pointer",
               border: "1px dashed",
-              borderRadius: "8px",
+              borderRadius: 1,
+            }}
+          >
+            Start Training
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            onClick={sendDataToServer}
+            sx={{
+              marginTop: 2,
+              padding: 1,
+              fontSize: 16,
+              cursor: "pointer",
+              border: "1px dashed",
+              borderRadius: 1,
               background: "#58a6ff",
             }}
-            onClick={sendDataToServer}
           >
             Send Data to Server
-          </button>
+          </Button>
         )}
-      </div>
-      <div
-        style={{ position: "relative", marginTop: 13, width: videoSize.width }}
-      >
+      </Box>
+      <Box sx={{ position: "relative", marginTop: 2, width: videoSize.width }}>
         <video
           ref={videoRef}
           autoPlay
@@ -312,15 +309,15 @@ const TrainModels = () => {
             objectFit: "contain",
           }}
         ></video>
-        <svg
+        <Box
+          component="svg"
           ref={canvasRef}
+          sx={{ position: "absolute", left: 0, top: 0 }}
           width={videoSize.width}
           height={videoSize.height}
-          style={{ position: "absolute", left: 0, top: 0 }}
-        ></svg>
-      </div>
-    </div>
+        ></Box>
+      </Box>
+    </Box>
   );
 };
-
 export default TrainModels;
