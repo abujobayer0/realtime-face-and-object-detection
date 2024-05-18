@@ -4,6 +4,7 @@ import * as faceapi from "face-api.js";
 import ml5 from "ml5";
 import "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-wasm";
+// import ImageDetection from "./components/imgDetection";
 
 const FaceDetection = () => {
   const navigate = useNavigate();
@@ -16,7 +17,15 @@ const FaceDetection = () => {
   const [videoSize, setVideoSize] = useState({ width: 680, height: 480 });
   const [clearFaces, setClearFaces] = useState([]);
   let objectDetector;
-
+  // const imageLinks = [
+  //   "http://195.32.24.180:1024/mjpg/video.mjpg",
+  //   "http://193.214.75.118/mjpg/video.mjpg",
+  //   "http://185.133.99.214:8010/mjpg/video.mjpg",
+  //   "http://100.42.92.26/mjpg/video.mjpg",
+  //   "http://77.222.181.11:8080/mjpg/video.mjpg",
+  //   "http://80.14.201.251:8010/mjpg/video.mjpg",
+  //   "",
+  // ];
   useEffect(() => {
     const runDetection = async () => {
       await loadModels();
@@ -41,6 +50,7 @@ const FaceDetection = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
+      console.log(videoRef);
       videoRef.current.onloadedmetadata = () => {
         detectFaces();
         initObjectDetection();
@@ -259,16 +269,7 @@ const FaceDetection = () => {
       >
         Face Detection & Object Detection
       </h1>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 10,
-          width: "100%",
-          position: "relative",
-        }}
-      >
+      <div className="responsive-container">
         <div ref={containerRef} style={{ position: "relative" }}>
           <video
             ref={videoRef}
@@ -479,6 +480,39 @@ const FaceDetection = () => {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+      <section
+        style={{ display: "flex", width: "100%", gap: 10, minHeight: 480 }}
+      >
+        <div
+          style={{
+            border: "1px dashed #58a6ff",
+            width: "100%",
+            padding: "10px",
+            borderRadius: "8px",
+            justifyContent: "center",
+            marginTop: "10px",
+            backgroundColor: "#0d1117",
+          }}
+        >
+          <h1 style={{ padding: "10px", color: "#58a6ff" }}>
+            Live Footages and Realtime Detection
+          </h1>
+          <div
+            style={{
+              display: "grid",
+              width: "100%",
+              gridTemplateColumns: "repeat(2, 1fr)",
+              gap: "20px",
+            }}
+          >
+            {/* {imageLinks.map((img, indx) => (
+              <div key={indx}>
+                <ImageDetection imgURL={img} />
+              </div>
+            ))} */}
           </div>
         </div>
       </section>

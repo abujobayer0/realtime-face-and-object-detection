@@ -14,7 +14,10 @@ const TrainModels = () => {
   const storedFaces = JSON.parse(localStorage.getItem("trainedFaces")) || [];
   const [isVideoReady, setIsVideoReady] = useState(false);
   const navigate = useNavigate();
-
+  //live spy cctv links
+  // http://142.0.109.159/axis-cgi/mjpg/video.cgi
+  // http://83.48.75.113:8320/axis-cgi/mjpg/video.cgi
+  // https://github.com/fury999io/public-ip-cams?tab=readme-ov-file
   useEffect(() => {
     const initializeModelsAndVideo = async () => {
       await faceapi.tf.setBackend("webgl");
