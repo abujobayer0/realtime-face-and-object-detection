@@ -1,132 +1,106 @@
-// import { useRef, useEffect, useState } from "react";
-// import ml5 from "ml5";
+import { useRef, useEffect, useState } from "react";
+import axios from "axios";
 
-// const ImageDetection = (props) => {
-//   const { imgURL } = props;
-//   const imageRef = useRef(null);
-//   const objectSvgRef = useRef(null);
-//   const [imageSize, setImageSize] = useState({ width: 680, height: 480 });
-//   let objectDetector;
-//   useEffect(() => {
-//     const runDetection = async () => {
-//       startImageDetection();
-//     };
-//     runDetection();
-//   }, []);
+const RealTimeObjectDetection = () => {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [detections, setDetections] = useState([]);
 
-//   const startImageDetection = async () => {
-//     try {
-//       const image = new Image();
-//       image.src = imgURL;
-//       image.onload = () => {
-//         setImageSize({ width: image.width, height: image.height });
-//         initObjectDetection(image);
-//       };
-//     } catch (err) {
-//       console.error("Error loading image:", err);
-//     }
-//   };
+  useEffect(() => {
+    const startVideo = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+    };
 
-//   const initObjectDetection = async (image) => {
-//     objectDetector = ml5.objectDetector("cocossd", () => {
-//       detectObjects(image);
-//     });
-//   };
+    startVideo();
+  }, []);
 
-//   const detectObjects = (image) => {
-//     objectDetector.detect(image, (error, results) => {
-//       if (error) {
-//         console.error(error);
-//         return;
-//       }
-//       console.log(results, "results");
-//       drawObjectDetections(results);
-//     });
-//   };
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      captureFrameAndDetect();
+    }, 500);
 
-//   const drawObjectDetections = (results) => {
-//     const container = objectSvgRef.current;
-//     container.innerHTML = "";
+    return () => clearInterval(intervalId);
+  }, []);
 
-//     results.forEach((result) => {
-//       const { x, y, width, height, label } = result;
-//       createDiv(
-//         container,
-//         (x * imageSize.width) / imageRef.current.width,
-//         (y * imageSize.height) / imageRef.current.height,
-//         (width * imageSize.width) / imageRef.current.width,
-//         (height * imageSize.height) / imageRef.current.height,
-//         label,
-//         "#fff",
-//         "#7513e820",
-//         "#7513e8"
-//       );
-//     });
-//   };
+  const captureFrameAndDetect = async () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(async (blob) => {
+      const formData = new FormData();
+      formData.append("image", blob, "frame.jpg");
 
-//   const createDiv = (
-//     container,
-//     x,
-//     y,
-//     width,
-//     height,
-//     label,
-//     textColor,
-//     backgroundColor,
-//     borderColor
-//   ) => {
-//     const div = document.createElement("div");
-//     div.style.position = "absolute";
-//     div.style.left = `${x}px`;
-//     div.style.top = `${y}px`;
-//     div.style.width = `${width}px`;
-//     div.style.height = `${height}px`;
-//     div.style.border = `2px solid ${borderColor}`;
-//     div.style.backgroundColor = backgroundColor;
-//     div.style.color = textColor;
-//     div.style.display = "flex";
-//     div.style.alignItems = "start";
-//     div.style.justifyContent = "start";
-//     div.style.fontSize = "14px";
-//     div.style.fontWeight = "bold";
+      try {
+        const response = await axios.post(
+          "https://ml-server-w7rv.onrender.com/detect",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+        console.log(response.data);
+        setDetections(response.data);
+      } catch (error) {
+        console.error("Error detecting objects:", error);
+      }
+    }, "image/jpeg");
+  };
 
-//     const p = document.createElement("p");
-//     p.textContent = label;
-//     p.style.margin = "0";
-//     p.style.padding = "5px";
-//     p.style.backgroundColor = borderColor;
+  const drawDetections = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
 
-//     div.appendChild(p);
-//     container.appendChild(div);
-//   };
+    detections.forEach((detection) => {
+      const [x, y, width, height] = detection.bbox;
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, width, height);
+      ctx.font = "18px Arial";
+      ctx.fillStyle = "red";
+      ctx.fillText(
+        `${detection.class} (${Math.round(detection.score * 100)}%)`,
+        x,
+        y > 10 ? y - 5 : 10
+      );
+    });
+  };
 
-//   return (
-//     <div style={{ position: "relative" }}>
-//       <img
-//         style={{ width: "100%" }}
-//         ref={imageRef}
-//         onLoad={() => {
-//           setImageSize({
-//             width: imageRef.current.width,
-//             height: imageRef.current.height,
-//           });
-//         }}
-//         src={imgURL}
-//         alt=""
-//       />
-//       <div
-//         ref={objectSvgRef}
-//         style={{
-//           borderRadius: "8px",
-//           position: "absolute",
-//           left: 0,
-//           top: 0,
-//           width: imageSize.width,
-//           height: imageSize.height,
-//         }}
-//       ></div>
-//     </div>
-//   );
-// };
+  useEffect(() => {
+    drawDetections();
+  }, [detections]);
 
-// export default ImageDetection;
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100vw",
+        height: "100vh",
+        overflow: "hidden",
+      }}
+    >
+      <video
+        ref={videoRef}
+        style={{ position: "absolute", width: "100%", height: "100%" }}
+      />
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+        }}
+      />
+    </div>
+  );
+};
+
+export default RealTimeObjectDetection;

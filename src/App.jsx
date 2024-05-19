@@ -16,6 +16,7 @@ import {
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
+import axios from "axios";
 
 const FaceDetection = () => {
   const navigate = useNavigate();
@@ -29,6 +30,8 @@ const FaceDetection = () => {
   const [clearFaces, setClearFaces] = useState([]);
   const [restart, setRestart] = useState(false);
   const [isBackCamera, setIsBackCamera] = useState(false);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
 
   let objectDetector;
 
@@ -237,14 +240,43 @@ const FaceDetection = () => {
       const width = videoRef.current?.clientWidth;
       if (height && width) {
         setVideoSize({ height: height, width: width });
-        console.log(height, width);
-        console.log(videoRef.current, videoRef.current);
       }
     }
     window.addEventListener("resize", updateSize);
     updateSize();
     return () => window.removeEventListener("resize", updateSize);
   }, []);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
+    setPreview(URL.createObjectURL(selectedFile));
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      alert("Please select a file first!");
+      return;
+    }
+    console.log(file);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:4000/detect",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      console.log("File uploaded successfully", response);
+    } catch (error) {
+      console.error("Error uploading file", error);
+    }
+  };
 
   return (
     <Box
@@ -535,7 +567,7 @@ const FaceDetection = () => {
           }}
         >
           <Typography variant="h4" sx={{ padding: "10px", color: "#58a6ff" }}>
-            Live Footages and Realtime Detection
+            Image upload system
           </Typography>
           <Box
             sx={{
@@ -544,7 +576,12 @@ const FaceDetection = () => {
               gridTemplateColumns: "repeat(2, 1fr)",
               gap: "20px",
             }}
-          ></Box>
+          >
+            {" "}
+            <input type="file" onChange={handleFileChange} />
+            {preview && <img src={preview} alt="Preview" width="100" />}
+            <button onClick={handleUpload}>Upload</button>
+          </Box>
         </Paper>
       </Box>
     </Box>
