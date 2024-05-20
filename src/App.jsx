@@ -16,6 +16,7 @@ import {
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
+import DataObjectIcon from "@mui/icons-material/DataObject";
 import axios from "axios";
 
 const FaceDetection = () => {
@@ -301,6 +302,16 @@ const FaceDetection = () => {
             }}
           >
             <ArrowRightAltIcon sx={{ color: "#fff" }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip arrow title={"Object Detection"}>
+          <IconButton
+            onClick={() => navigate("/detection")}
+            sx={{
+              border: "1px solid #58a6ff",
+            }}
+          >
+            <DataObjectIcon sx={{ color: "#fff" }} />
           </IconButton>
         </Tooltip>
         <Tooltip arrow title={"Restart the camera, if not open"}>
