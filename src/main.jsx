@@ -11,10 +11,7 @@ const RouterMain = () => {
     <Routes>
       <Route path="/" Component={FaceDetection}></Route>
       <Route path="/train" Component={TrainModels}></Route>
-      <Route
-        path="/server-object-detection"
-        Component={RealTimeObjectDetection}
-      ></Route>
+      <Route path="/detection" Component={RealTimeObjectDetection}></Route>
     </Routes>
   );
 };
