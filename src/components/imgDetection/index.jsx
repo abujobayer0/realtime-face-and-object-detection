@@ -37,7 +37,7 @@ const RealTimeObjectDetection = () => {
 
       try {
         const response = await axios.post(
-          "https://ml-server-w7rv.onrender.com/detect",
+          "https://object-detection-server-78ha.onrender.com/detect",
           formData,
           {
             headers: {
